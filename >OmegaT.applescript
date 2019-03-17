@@ -1,3 +1,4 @@
+# This code is GPL3+
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
 use Terminal : script "JC_Terminal"
