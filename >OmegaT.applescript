@@ -1,41 +1,95 @@
-# This code is GPL3+
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
+# This version: Tuesday, August 31, 2021 14:22:28
 
-# set default OmegaT parameters
+## Default OmegaT parameters
+# identify the various paths to the existing JREs
+# TODO some JREs may not be installed. Maybe a script to check the available options would be better
+set java_path_adoptopenjdk8 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home/bin/java"
+set java_path_adoptopenjdk8openj9 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-8-openj9.jdk/Contents/Home/bin/java"
+set java_path_jdk180_181 to "/Library/Java/JavaVirtualMachines/jdk1.8.0_181.jdk/Contents/Home/bin/java"
+set java_path_adoptopenjdk11 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home/bin/java"
+set java_path_adoptopenjdk11openj9 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-11-openj9.jdk/Contents/Home/bin/java"
+set java_path_OpenJDK13Ujdk_x64_mac_openj9_13_33_openj90160 to "/Library/Java/JavaVirtualMachines/OpenJDK13U-jdk_x64_mac_openj9_13_33_openj9-0.16.0/Contents/Home/bin/java"
+set java_path_OpenJDK13Ujdk_x64_mac_hotspot_13_33 to "/Library/Java/JavaVirtualMachines/OpenJDK13U-jdk_x64_mac_hotspot_13_33/Contents/Home/bin/java"
+set java_path_adoptopenjdk13openj9 to "/System/Library/Frameworks/JavaVM.framework/Versions/A/Commands/java"
+
+# set the JRE that will be used
+set java_path to java_path_adoptopenjdk11
+try #to see if the selected JRE exists
+	alias POSIX file java_path
+on error # if it does not exist, use the default path assuming that Java is installed...
+	set java_path to "/usr/bin/java"
+end try
+
+## identify the OmegaT preference folders
 set user_preferences_folder to ((POSIX path of (path to home folder)) & "Library/Preferences/")
 set omegat_configuration_folder to user_preferences_folder & "OmegaT/"
-set projects_configuration_folder to user_preferences_folder & "OmegaT configurations/"
-set omegat_launch_preference_file to omegat_configuration_folder & "omegat_launch.plist"
 
-# create the launch preference file if needed
-tell application "System Events"
-	try # does the omegat launch preference file exist ?
-		# TODO check that the file is in the correct format
+# the two items below are specific to this script, they may well not exist.
+# that "OmegaT configuration" folder will be the place where this script creates project specific configuration folders.
+# the script checks whether a configuration folder with the same name as the project exists and uses it for launching the project.
+# if the folder does not exist, OmegaT asks (later) whether the project should use one or not
+set projects_configuration_folder to user_preferences_folder & "OmegaT configurations/"
+try #to see if the project specific configuration folder exists
+	alias POSIX file projects_configuration_folder
+on error # if it does not exist, create it
+	do shell script "mkdir " & quoted form of projects_configuration_folder
+end try
+
+# the launch preference file mainly contains the path to the prefered OmegaT.jar file
+# 
+# there are probably other ways to use this file
+set omegat_launch_preference_file to omegat_configuration_folder & "omegat_launch.plist"
+try #to see if the omegat launch preferences file exists
+	alias POSIX file omegat_launch_preference_file
+	tell application "System Events"
+		# parse the contents of the launch file to find the relevant information
+		# TODO check the current OmegaT version and the one available for download
+		# TODO if different, ask whether to update or not
 		set omegat_launch_preferences to contents of property list file omegat_launch_preference_file
 		set omegat_path to value of item 1 of (property list items of omegat_launch_preferences whose name is "Path")
-		# TODO check the current OmegaT version and the one available for download
-		# if different, ask whether to update or not
-		# set omegat_type to value of item 1 of (property list items of omegat_launch_preferences whose name is "Type")
-		# set omegat_version to value of item 1 of (property list items of omegat_launch_preferences whose name is "Version")
-	on error # create it
+		set omegat_type to value of item 1 of (property list items of omegat_launch_preferences whose name is "Type")
+		set omegat_version to value of item 1 of (property list items of omegat_launch_preferences whose name is "Version")
+	end tell
+on error # if it does not exist, create it
+	display dialog "If you use the OmegaT.app application, select it and the script will automatically find the OmegaT.jar file inside the application." with title "This script requires OmegaT.jar to run." buttons {"OK"} default button {"OK"} with icon 1
+	set omegat_location to (choose file with prompt "Location of OmegaT.jar:" default location (path to applications folder))
+	# this checks that the selected application is OmegaT.something
+	# and adds the necessary path if OmegaT.app was selected
+	tell application "System Events"
+		if items 1 through 6 of ((name of omegat_location) as text) as string is not "OmegaT" then
+			display dialog "Select either OmegaT.app or OmegaT.jar. Run the script again and select the required file." with title "This script requires OmegaT.jar to run." buttons {"OK"} default button {"OK"} with icon 1
+			return
+		end if
+		if (name extension of omegat_location) is "app" then
+			set omegat_path to (POSIX path of (omegat_location) & "/Contents/Java/OmegaT.jar") as string
+		else
+			set omegat_path to (POSIX path of (omegat_location)) as string
+		end if
+	end tell
+	
+	tell application "System Events"
 		set the launch_preferences to make new property list item with properties {kind:record}
 		set omegat_launch_preference_file to make new property list file with properties {contents:launch_preferences, name:omegat_launch_preference_file}
+		set omegat_type to (name extension of omegat_location)
+		set omegat_version to (short version of omegat_location)
+		if omegat_version = "" then
+			# this expects to have the version number displayed on the last line of the --help output
+			set omegat_version to do shell script "java -jar " & omegat_path & " -h | tail -1"
+		end if
 		tell property list items of omegat_launch_preference_file
-			set omegat_location to (choose file with prompt "Location of OmegaT:" default location (path to applications folder))
-			set omegat_path to (POSIX path of (omegat_location)) as string
-			set omegat_type to (name extension of omegat_location) as string
-			set omegat_version to (short version of omegat_location) as string
 			make new property list item at its end with properties {kind:record, name:"Path", value:omegat_path}
 			make new property list item at its end with properties {kind:record, name:"Type", value:omegat_type}
 			make new property list item at its end with properties {kind:record, name:"Version", value:omegat_version}
 		end tell
-	end try
-end tell
+	end tell
+end try
+
 
 # set java launch parameters
 # TODO how to use parameters when dealing with OmegaT.app ?
-set omegat_command to "java -Xdock:name=OmegaT -jar " & quoted form of omegat_path & " "
+set omegat_command to java_path & " -Xdock:name=OmegaT -jar " & quoted form of omegat_path & " "
 set is_local_parameter to " --no-team "
 
 # set project parameters
@@ -46,9 +100,10 @@ set is_project to false
 set is_team_project to false
 set is_IP_connected to false
 
+
 tell application "Finder"
 	try # is the folder an OmegaT project ?
-		if document file "omegat.project" of item 1 of (get selection) exists then
+		if document file "omegat.project" of item 1 of (get selection) exists then #it is an OmegaT project
 			set project_folder to item 1 of (selection as alias list)
 			set project_name to name of project_folder
 			set project_path to quoted form of POSIX path of project_folder
@@ -58,16 +113,39 @@ tell application "Finder"
 				# plus OmegaT automatically creates a configuration folder where the command points if it does not exist.
 				# so we end up with a "default" configuration, instead of having the "user default" as set in /preferences/OmegaT...
 				set this_project_configuration_folder to ((projects_configuration_folder & project_name) as POSIX file) as alias
-				# if non existant, use dialog to ask "create settings with user defaults / OmegaT defaults ?"
-				set config_parameter to " --config-dir=" & quoted form of POSIX path of this_project_configuration_folder
+
+				# TODO if the project configuration folder does not exist, ask whether it is necessary
+			on error
+				try
+					set project_configuration to button returned of (display dialog "You can chose project specific settings, user specific settings, or the OmegaT defaults." with title "Select the settings you want to use with this project" buttons {"Project", "User", "Default"} default button "Project" cancel button "User")
+				on error #in case "User" cancels the setting
+					set this_project_configuration_folder to (user_preferences_folder & "OmegaT/" as POSIX file)
+				end try
+
+				if project_configuration is "Project" then
+					tell application "Finder"
+						set this_project_configuration_folder to POSIX path of ((make new folder at (POSIX file projects_configuration_folder as alias) with properties {name:project_name}) as alias)
+						duplicate items of (POSIX file (user_preferences_folder & "OmegaT/") as alias) to (POSIX file this_project_configuration_folder)
+						delete items of (POSIX file ((this_project_configuration_folder) & "logs") as alias)
+						delete items of (POSIX file ((this_project_configuration_folder) & "script") as alias)
+						delete items of (POSIX file ((this_project_configuration_folder) & "spelling") as alias)
+						delete (POSIX file ((this_project_configuration_folder) & "segmentation.conf") as alias)
+						delete (POSIX file ((this_project_configuration_folder) & "repositories.properties") as alias)
+					end tell
+				else if project_configuration is "Default" then
+					set this_project_configuration_folder to (user_preferences_folder & "OmegaT configurations/Factory settings/" as POSIX file)
+					delete items of (POSIX file (this_project_configuration_folder) as alias)
+				end if
+
 			end try
+			set config_parameter to " --config-dir=" & quoted form of POSIX path of this_project_configuration_folder
 			try # is the project a 4.1 team project ?
 				# TODO team projects for 3.6 and 4.1
 				do shell script "ls " & (quoted form of (POSIX path of item 1 of (selection as alias list)) & ".repositories")
 				set is_team_project to true
 				try # is the machine online ?
 					# TODO the project could be a local team project, so need to check the connection in other ways
-					do shell script ("ping -c 2 " & "www.omegat.org")
+					do shell script ("ping -c 1 " & "www.omegat.org")
 					set is_IP_connected to true
 				end try
 			end try
@@ -79,28 +157,28 @@ end tell
 
 try
 	if is_project = false then # this is not an OmegaT project: either create a project at selection or open OmegaT empty
-		set user_choice to button returned of (display dialog "Launch OmegaT / Create project?" buttons {"Launch OmegaT", "Create Project", "Cancel"} default button "Create Project" cancel button "Cancel")
+		set user_choice to button returned of (display dialog "You can launch OmegaT to later open a project, or create a project." with title "No OmegaT project has been selected" buttons {"Launch OmegaT", "Create Project", "Cancel"} default button "Create Project" cancel button "Cancel")
 	else if (is_team_project = true) and (is_IP_connected = true) then # this is a team project and the machine is connected:  open team project or open locally
-		set user_choice to button returned of (display dialog "Open team project / Open project locally?" buttons {"Open Team Project", "Open Project Locally", "Cancel"} default button "Open Project Locally" cancel button "Cancel")
+		set user_choice to button returned of (display dialog "Do you want to open the team project for synchronization, or do you want to keep your modifications local for this session?" with title "An OmegaT team has been selected" buttons {"Synchronize", "Keep local", "Cancel"} default button "Keep local" cancel button "Cancel")
 	else # this is an OmegaT project, either team and not connected or local: open project or create project
-		set user_choice to button returned of (display dialog "Open selected project / Create project?" buttons {"Open Project", "Create Project", "Cancel"} default button "Open Project" cancel button "Cancel")
+		set user_choice to button returned of (display dialog "The OmegaT project may be a team project, in which case you do not have a working connexion. You can open the project, or create a project." with title "An OmegaT project has been selected" buttons {"Open Project", "Create Project", "Cancel"} default button "Open Project" cancel button "Cancel")
 	end if
 on error number -128
 	set usercanceled to true
 	return
 end try
-# user_choice is of {"Launch OmegaT", "Open Team Project", "Open Project Locally", "Open Project", "Create Project", "Cancel"}
+# user_choice is of {"Launch OmegaT", "Synchronize", "Keep local", "Open Project", "Create Project", "Cancel"}
 
 try
 	if user_choice is "Launch OmegaT" then
 		# "Launch OmegaT"
 		# launch OmegaT with default parameters, without specifying a project
 		set command_parameters to ""
-	else if user_choice is "Open Team Project" then
+	else if user_choice is "Synchronize" then
 		# "Open Team Project"
 		# launch OmegaT with project parameters, connected, on the team project
 		set command_parameters to project_path & config_parameter
-	else if user_choice is "Open Project Locally" then
+	else if user_choice is "Keep local" then
 		# "Open Project Locally"
 		# launch OmegaT with project parameters, not connected, on the team project
 		set command_parameters to project_path & is_local_parameter & config_parameter
@@ -111,8 +189,10 @@ try
 	else if user_choice is "Create Project" then
 		# "Create Project"
 		# TODO use code from project.app to create a working OmegaT project with required parameters
-		my CreateProject()
-		return
+		# temporarily, just launch OmegaT
+		#	my CreateProject()
+		display dialog "OmegaT will now be launched. Use \"Project > New...\" to create a new project." with title "Create a new project with OmegaT" buttons {"OK"} default button "OK"
+		set command_parameters to ""
 	end if
 	set myCommand to omegat_command & command_parameters
 on error
@@ -123,20 +203,26 @@ end try
 my launchOmegaT(myCommand)
 
 on launchOmegaT(myCommand)
-	tell application "Terminal" to activate
-	tell application "System Events" to tell application process "Terminal"
-		set frontmost to true
-		delay 0.1
-		keystroke "t" using {command down}
-	end tell
+	try
+		set user_choice to button returned of (display dialog "This command will now be launched in a Terminal window:
 	
-	tell application "Terminal"'s front window
-		delay 0.1
-		do script myCommand in its last tab
-		activate
-	end tell
-	
-	return
+	" & myCommand with title "Launch OmegaT in Terminal")
+		tell application "Terminal" to activate
+		tell application "System Events" to tell application process "Terminal"
+			set frontmost to true
+			delay 0.1
+			keystroke "t" using {command down}
+			tell application "Terminal"'s front window
+				delay 0.1
+				do script myCommand in its last tab
+				activate
+			end tell
+		end tell
+		return
+	on error
+		display alert "Canceling"
+		return
+	end try
 end launchOmegaT
 
 on CreateProject()
