@@ -1,6 +1,8 @@
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
 # This version: Tuesday, August 31, 2021 14:22:28
+# This version: Sunday, September 19, 2021 20:31:59
+
 
 ## Default OmegaT parameters
 # identify the various paths to the existing JREs
@@ -10,9 +12,6 @@ set java_path_adoptopenjdk8openj9 to "/Library/Java/JavaVirtualMachines/adoptope
 set java_path_jdk180_181 to "/Library/Java/JavaVirtualMachines/jdk1.8.0_181.jdk/Contents/Home/bin/java"
 set java_path_adoptopenjdk11 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home/bin/java"
 set java_path_adoptopenjdk11openj9 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-11-openj9.jdk/Contents/Home/bin/java"
-set java_path_OpenJDK13Ujdk_x64_mac_openj9_13_33_openj90160 to "/Library/Java/JavaVirtualMachines/OpenJDK13U-jdk_x64_mac_openj9_13_33_openj9-0.16.0/Contents/Home/bin/java"
-set java_path_OpenJDK13Ujdk_x64_mac_hotspot_13_33 to "/Library/Java/JavaVirtualMachines/OpenJDK13U-jdk_x64_mac_hotspot_13_33/Contents/Home/bin/java"
-set java_path_adoptopenjdk13openj9 to "/System/Library/Frameworks/JavaVM.framework/Versions/A/Commands/java"
 
 # set the JRE that will be used
 set java_path to java_path_adoptopenjdk11
@@ -88,7 +87,7 @@ end try
 
 
 # set java launch parameters
-# TODO how to use parameters when dealing with OmegaT.app ?
+# TODO who to use parameters when dealing with OmegaT.app ?
 set omegat_command to java_path & " -Xdock:name=OmegaT -jar " & quoted form of omegat_path & " "
 set is_local_parameter to " --no-team "
 
@@ -134,7 +133,7 @@ tell application "Finder"
 					end tell
 				else if project_configuration is "Default" then
 					set this_project_configuration_folder to (user_preferences_folder & "OmegaT configurations/Factory settings/" as POSIX file)
-					delete items of (POSIX file (this_project_configuration_folder) as alias)
+					delete items of (this_project_configuration_folder as alias)
 				end if
 
 			end try
@@ -145,7 +144,7 @@ tell application "Finder"
 				set is_team_project to true
 				try # is the machine online ?
 					# TODO the project could be a local team project, so need to check the connection in other ways
-					do shell script ("ping -c 1 " & "www.omegat.org")
+					do shell script ("ping -c 2 " & "www.omegat.org")
 					set is_IP_connected to true
 				end try
 			end try
@@ -159,9 +158,11 @@ try
 	if is_project = false then # this is not an OmegaT project: either create a project at selection or open OmegaT empty
 		set user_choice to button returned of (display dialog "You can launch OmegaT to later open a project, or create a project." with title "No OmegaT project has been selected" buttons {"Launch OmegaT", "Create Project", "Cancel"} default button "Create Project" cancel button "Cancel")
 	else if (is_team_project = true) and (is_IP_connected = true) then # this is a team project and the machine is connected:  open team project or open locally
-		set user_choice to button returned of (display dialog "Do you want to open the team project for synchronization, or do you want to keep your modifications local for this session?" with title "An OmegaT team has been selected" buttons {"Synchronize", "Keep local", "Cancel"} default button "Keep local" cancel button "Cancel")
-	else # this is an OmegaT project, either team and not connected or local: open project or create project
-		set user_choice to button returned of (display dialog "The OmegaT project may be a team project, in which case you do not have a working connexion. You can open the project, or create a project." with title "An OmegaT project has been selected" buttons {"Open Project", "Create Project", "Cancel"} default button "Open Project" cancel button "Cancel")
+		set user_choice to button returned of (display dialog "Do you want to open the team project for synchronization, or do you want to keep your modifications local for this session?" with title "You have selected an OmegaT team project" buttons {"Synchronize", "Keep local", "Cancel"} default button "Keep local" cancel button "Cancel")
+	else if (is_team_project = true) and (is_IP_connected = false) then # this is a team project and the machine is not connected:  open team project without synchronization
+		set user_choice to button returned of (display dialog "You have selected a team project, but there is no connection. Do you want to open the team project for synchronization when the connection resumes, or do you want to keep your modifications local for this session?" with title "You have selected an OmegaT team project" buttons {"Synchronize", "Keep local", "Cancel"} default button "Keep local" cancel button "Cancel")
+	else # this is a local OmegaT project: open project or create project
+		set user_choice to button returned of (display dialog "You have selected a local OmegaT project. You can open the project, or create a new project." with title "You have selected a local OmegaT project" buttons {"Open Project", "Create Project", "Cancel"} default button "Open Project" cancel button "Cancel")
 	end if
 on error number -128
 	set usercanceled to true
@@ -203,10 +204,12 @@ end try
 my launchOmegaT(myCommand)
 
 on launchOmegaT(myCommand)
+	set the clipboard to myCommand
 	try
 		set user_choice to button returned of (display dialog "This command will now be launched in a Terminal window:
-	
-	" & myCommand with title "Launch OmegaT in Terminal")
+" & myCommand & "
+
+The command has also been copied to your clipboard." with title "Launch OmegaT in Terminal")
 		tell application "Terminal" to activate
 		tell application "System Events" to tell application process "Terminal"
 			set frontmost to true
