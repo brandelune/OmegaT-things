@@ -2,7 +2,9 @@ use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
 # This version: Tuesday, August 31, 2021 14:22:28
 # This version: Sunday, September 19, 2021 20:31:59
-
+# → simplify the settings
+# This version: Saturday, September 25, 2021 20:26:16
+# → add code for running on Finder aliases
 
 ## Default OmegaT parameters
 # identify the various paths to the existing JREs
@@ -102,17 +104,24 @@ set is_IP_connected to false
 
 tell application "Finder"
 	try # is the folder an OmegaT project ?
-		if document file "omegat.project" of item 1 of (get selection) exists then #it is an OmegaT project
-			set project_folder to item 1 of (selection as alias list)
+		# the script only uses the first selected item
+		# if that item is a Finder alias, it looks for the original item
+		if (class of item 1 of (get selection) as text) is in {"alias file", "«class alia»"} then
+			set mySelection to original item of item 1 of (get selection)
+		else
+			set mySelection to item 1 of (get selection)
+		end if
+		if document file "omegat.project" of mySelection exists then #it is an OmegaT project
+			set project_folder to mySelection
 			set project_name to name of project_folder
-			set project_path to quoted form of POSIX path of project_folder
+			set project_path to quoted form of POSIX path of (project_folder as alias)
 			set is_project to true
 			try # does the project have a dedicated configuration folder in ~/Library/Preferences/OmegaT configurations/ ?
 				# when the configuration folder does not exist, this does not result into an error.
 				# plus OmegaT automatically creates a configuration folder where the command points if it does not exist.
 				# so we end up with a "default" configuration, instead of having the "user default" as set in /preferences/OmegaT...
 				set this_project_configuration_folder to ((projects_configuration_folder & project_name) as POSIX file) as alias
-
+				
 				# TODO if the project configuration folder does not exist, ask whether it is necessary
 			on error
 				try
@@ -120,7 +129,7 @@ tell application "Finder"
 				on error #in case "User" cancels the setting
 					set this_project_configuration_folder to (user_preferences_folder & "OmegaT/" as POSIX file)
 				end try
-
+				
 				if project_configuration is "Project" then
 					tell application "Finder"
 						set this_project_configuration_folder to POSIX path of ((make new folder at (POSIX file projects_configuration_folder as alias) with properties {name:project_name}) as alias)
@@ -135,12 +144,12 @@ tell application "Finder"
 					set this_project_configuration_folder to (user_preferences_folder & "OmegaT configurations/Factory settings/" as POSIX file)
 					delete items of (this_project_configuration_folder as alias)
 				end if
-
+				
 			end try
 			set config_parameter to " --config-dir=" & quoted form of POSIX path of this_project_configuration_folder
 			try # is the project a 4.1 team project ?
 				# TODO team projects for 3.6 and 4.1
-				do shell script "ls " & (quoted form of (POSIX path of item 1 of (selection as alias list)) & ".repositories")
+				do shell script "ls " & (quoted form of (POSIX path of mySelection) & ".repositories")
 				set is_team_project to true
 				try # is the machine online ?
 					# TODO the project could be a local team project, so need to check the connection in other ways
@@ -196,6 +205,7 @@ try
 		set command_parameters to ""
 	end if
 	set myCommand to omegat_command & command_parameters
+	display alert myCommand
 on error
 	display alert "Somethine went wrong..."
 	return
