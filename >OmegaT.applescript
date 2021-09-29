@@ -5,6 +5,8 @@ use scripting additions
 # → simplify the settings
 # This version: Saturday, September 25, 2021 20:26:16
 # → add code for running on Finder aliases
+# This version: Wednesday, September 29, 2021 12:13:31
+# → add more references to existing variables
 
 ## Default OmegaT parameters
 # identify the various paths to the existing JREs
@@ -149,7 +151,7 @@ tell application "Finder"
 			set config_parameter to " --config-dir=" & quoted form of POSIX path of this_project_configuration_folder
 			try # is the project a 4.1 team project ?
 				# TODO team projects for 3.6 and 4.1
-				do shell script "ls " & (quoted form of (POSIX path of mySelection) & ".repositories")
+				do shell script "ls " & project_path & ".repositories"
 				set is_team_project to true
 				try # is the machine online ?
 					# TODO the project could be a local team project, so need to check the connection in other ways
@@ -205,7 +207,6 @@ try
 		set command_parameters to ""
 	end if
 	set myCommand to omegat_command & command_parameters
-	display alert myCommand
 on error
 	display alert "Somethine went wrong..."
 	return
