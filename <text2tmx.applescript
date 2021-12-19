@@ -3,7 +3,7 @@ use framework "Foundation"
 use scripting additions
 
 tell application "TextEdit"
-	
+
 	-- number of documents to handle
 	set myNbofDocuments to number of documents
 	-- language codes to serve as <tuv>'s xml:lang attributes
@@ -16,7 +16,7 @@ tell application "TextEdit"
 	-- this takes too much time (although less than the TMX creation loop), especially for big data sets:
 	-- 500 x 2 = ~5s, 6000 x 2 = ~ 70s
 	set myTMData to {}
-	
+
 	-- get the language codes
 	set visible of windows to false
 	repeat with i from 1 to myNbofDocuments
@@ -25,8 +25,7 @@ tell application "TextEdit"
 		set visible of window i to false
 	end repeat
 	set visible of windows to false
-	
-	
+
 	-- get the maximum line number
 	repeat with i from 1 to myNbofDocuments
 		try
@@ -38,12 +37,12 @@ tell application "TextEdit"
 			set myLines to myCurrentNb
 		end try
 	end repeat
-	
+
 	-- fill the data set with the contents of the documents
 	repeat with i from 1 to myNbofDocuments
 		set end of myRawData to paragraphs of document i
 	end repeat
-	
+
 	-- we can work outside of TextEdit now
 end tell
 
@@ -62,11 +61,11 @@ set progress additional description to "Preparing to process."
 -- this part takes *way* too much time.
 
 repeat with i from 1 to length of item 1 of myRawData
-	
+
 	set progress additional description to "Processing raw data " & i & " of " & myLines
 	-- Increment the progress
 	set progress completed steps to i
-	
+
 	set oneTU to {}
 	repeat with j from 1 to length of myRawData
 		set end of oneTU to item i of item j of myRawData
