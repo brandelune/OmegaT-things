@@ -4,7 +4,7 @@
 	-- Help: Shane Stanley, Steve Mills
 	-- Thread: https://lists.apple.com/archives/applescript-users/2017/Mar/msg00271.html
 	-- dCre: 2017/03/25
-	-- dMod: 2017/03/26
+	-- dMod: 2021/12/19
 	-- Appl: Excel
 	-- Task: Convert Excel "used range" to TMX
 	-- Libs: None
@@ -67,6 +67,7 @@ tell application "Microsoft Excel"
 	end tell
 end tell
 
+
 (*
 TODO
         • rewrite with handlers
@@ -85,6 +86,15 @@ TODO
 	• check that an Excel file is actually opened if not, open a dialog to select one
 	• create TMData for each sheet → create TM for each TMData, with sheet name appended
 *)
+
+
+-- attempt at showing progress
+set myLines to length of myTMData
+set progress total steps to myLines
+set progress completed steps to 0
+set progress description to "Processing TUs..."
+set progress additional description to "Preparing to process."
+
 
 -- language codes to serve as <tuv>'s xml:lang attributes
 set theLANGAttribute to list 1 of myTMData
@@ -147,6 +157,12 @@ set tmxBody to current application's NSXMLNode's elementWithName:"body"
 -- back to the data
 -- processing the TM data, from the second row
 repeat with i from 2 to length of myTMData
+	
+	-- Update the progress detail
+	set progress additional description to "Processing TUs " & i & " of " & myLines
+	-- Increment the progress
+	set progress completed steps to i
+	
 	-- creation of the <tu> element, no attributes
 	set TUElement to (current application's NSXMLNode's elementWithName:"tu")
 	-- myTU is a given row, contains as many <tuv> elements as there are items in the row
@@ -183,8 +199,17 @@ end repeat
 (tmxRoot's addChild:tmxBody)
 
 -- the data is saved as XML data, pretty printed and written to a file
+set theTMXFilePath to "/users/suzume/Desktop/xls2tmx_" & myDateString & ".tmx"
 set theData to theTMXdocument's XMLDataWithOptions:((current application's NSXMLDocumentTidyXML) + (get current application's NSXMLNodePrettyPrint))
-theData's writeToFile:"/users/suzume/Desktop/Test.tmx" atomically:true
+theData's writeToFile:theTMXFilePath atomically:true
+
+tell application "Finder" to activate desktop
+
+-- Reset the progress information
+set progress total steps to 0
+set progress completed steps to 0
+set progress description to ""
+set progress additional description to ""
 
 (*
 ----------------------------------------------------------------------------------------
