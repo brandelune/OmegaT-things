@@ -187,7 +187,7 @@ end repeat
 (tmxRoot's addChild:tmxBody)
 
 -- the data is saved as XML data, pretty printed and written to a file
-set theTMXFilePath to "/users/suzume/Desktop/TextEdit2tmx_" & myDateString & ".tmx"
+set theTMXFilePath to (POSIX path of (path to desktop)) & "TextEdit2tmx_" & myDateString & ".tmx"
 set theData to theTMXdocument's XMLDataWithOptions:((current application's NSXMLDocumentTidyXML) + (get current application's NSXMLNodePrettyPrint))
 theData's writeToFile:theTMXFilePath atomically:true
 
