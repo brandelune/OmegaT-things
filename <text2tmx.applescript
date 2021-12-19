@@ -1,3 +1,21 @@
+(* 
+------------------------------------------------------------------------------------------
+	-- Auth: Jean-Christophe Helary
+	-- Help: Shane Stanley, Steve Mills
+	-- Thread: https://lists.apple.com/archives/applescript-users/2017/Mar/msg00271.html
+	-- dCre: 2021/12/19
+	-- dMod: 2021/12/19
+	-- Appl: TextEdit
+	-- Task: Convert TextEdit documents to TMX
+	-- Libs: None
+	-- Osax: None 
+	-- Tags: @Applescript, @ASObj-C, @TextEdit, @TMX, @XML
+	------------------------------------------------------------------------------------------
+
+This code is distributed under the GPL3 licence.
+
+*)
+
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use framework "Foundation"
 use scripting additions

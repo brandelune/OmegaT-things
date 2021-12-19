@@ -1,3 +1,17 @@
+(* 
+------------------------------------------------------------------------------------------
+	-- Auth: Jean-Christophe Helary
+	-- Appl: OmegaT
+	-- Task: Launch OmegaT on a Finder selected project
+	-- Libs: None
+	-- Osax: None 
+	-- Tags: @Applescript, @OmegaT
+	------------------------------------------------------------------------------------------
+
+This code is distributed under the GPL3 licence.
+
+*)
+
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
 

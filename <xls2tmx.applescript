@@ -11,6 +11,9 @@
 	-- Osax: None 
 	-- Tags: @Applescript, @ASObj-C, @Excel, @TMX, @XML
 	------------------------------------------------------------------------------------------
+
+This code is distributed under the GPL3 licence.
+
 *)
 
 use AppleScript version "2.4" -- Yosemite (10.10) or later
