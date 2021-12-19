@@ -94,7 +94,7 @@ end try
 
 # set java launch parameters
 # TODO who to use parameters when dealing with OmegaT.app ?
-set omegat_command to java_path & " -Xdock:name=OmegaT -jar " & quoted form of omegat_path & " "
+set omegat_command to java_path & " -Xdock:name=OmegaT -Duser.language=fr -jar " & quoted form of omegat_path & " "
 set is_local_parameter to " --no-team "
 
 # set project parameters
