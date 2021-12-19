@@ -1,29 +1,31 @@
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
-# This version: Tuesday, August 31, 2021 14:22:28
-# This version: Sunday, September 19, 2021 20:31:59
-# → simplify the settings
-# This version: Saturday, September 25, 2021 20:26:16
-# → add code for running on Finder aliases
-# This version: Wednesday, September 29, 2021 12:13:31
+
+# This version: Sunday, December 19, 2021
+# → modify the Java paths
+# This version: Wednesday, September 29, 2021
 # → add more references to existing variables
+# This version: Saturday, September 25, 2021
+# → add code for running on Finder aliases
+# This version: Sunday, September 19, 2021
+# → simplify the settings
 
 ## Default OmegaT parameters
 # identify the various paths to the existing JREs
 # TODO some JREs may not be installed. Maybe a script to check the available options would be better
-set java_path_adoptopenjdk8 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home/bin/java"
-set java_path_adoptopenjdk8openj9 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-8-openj9.jdk/Contents/Home/bin/java"
-set java_path_jdk180_181 to "/Library/Java/JavaVirtualMachines/jdk1.8.0_181.jdk/Contents/Home/bin/java"
-set java_path_adoptopenjdk11 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-11.jdk/Contents/Home/bin/java"
-set java_path_adoptopenjdk11openj9 to "/Library/Java/JavaVirtualMachines/adoptopenjdk-11-openj9.jdk/Contents/Home/bin/java"
+property java_path_temurin_17 : "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home/bin/java"
+property java_path_temurin_11 : "/Library/Java/JavaVirtualMachines/temurin-11.jdk/Contents/Home/bin/java"
 
 # set the JRE that will be used
-set java_path to java_path_adoptopenjdk11
+set java_path to java_path_temurin_11
 try #to see if the selected JRE exists
 	alias POSIX file java_path
 on error # if it does not exist, use the default path assuming that Java is installed...
+	display alert "The specified Java version is not installed, using the default /usr/bin/java instead."
 	set java_path to "/usr/bin/java"
 end try
+
+return
 
 ## identify the OmegaT preference folders
 set user_preferences_folder to ((POSIX path of (path to home folder)) & "Library/Preferences/")
