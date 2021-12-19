@@ -227,7 +227,12 @@ The command has also been copied to your clipboard." with title "Launch OmegaT i
 		tell application "System Events" to tell application process "Terminal"
 			set frontmost to true
 			delay 0.1
-			keystroke "t" using {command down}
+			try
+				keystroke "t" using {command down}
+			on error
+				display alert "The script can't create a Terminal tab because it does not have UI access rights.
+Modify Preferences > Accessibility to open the command in a new tab."
+			end try
 			tell application "Terminal"'s front window
 				delay 0.1
 				do script myCommand in its last tab
