@@ -19,22 +19,26 @@ This code is distributed under the GPL3 licence.
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use framework "Foundation"
 use scripting additions
+use BridgePlus : script "BridgePlus"
+load framework
+-- this is necessary to use BridgePlus functions
+-- see https://www.macosxautomation.com/applescript/apps/BridgePlus.html
 
 tell application "TextEdit"
-
-	-- number of documents to handle
+	
 	set myNbofDocuments to number of documents
-	-- language codes to serve as <tuv>'s xml:lang attributes
+	-- number of documents to handle
 	set theLANGAttributes to {}
-	-- number of lines in each document
+	-- language codes to serve as <tuv>'s xml:lang attributes
 	set myLines to 0
-	-- an array of lists that contains all the paragraphs for each document
+	-- number of lines in each document
 	set myRawData to {}
+	-- an array of lists that contains all the paragraphs for each document
+	set myTMData to {}
 	-- the array above reorganized so that each paragraph is associated to the paragraphs of the same rank in the other documents
 	-- this takes too much time (although less than the TMX creation loop), especially for big data sets:
 	-- 500 x 2 = ~5s, 6000 x 2 = ~ 70s
-	set myTMData to {}
-
+	
 	-- get the language codes
 	set visible of windows to false
 	repeat with i from 1 to myNbofDocuments
@@ -43,7 +47,8 @@ tell application "TextEdit"
 		set visible of window i to false
 	end repeat
 	set visible of windows to false
-
+	
+	
 	-- get the maximum line number
 	repeat with i from 1 to myNbofDocuments
 		try
@@ -55,12 +60,24 @@ tell application "TextEdit"
 			set myLines to myCurrentNb
 		end try
 	end repeat
-
+	
+	
 	-- fill the data set with the contents of the documents
 	repeat with i from 1 to myNbofDocuments
-		set end of myRawData to paragraphs of document i
+		try
+			set theDocument to document i
+			set theText to text of theDocument
+			set theParagraphs to my tid(theText, linefeed)
+			
+		on error error_message number error_number
+			if the error_number is not -128 then display alert "TextEdit" message error_message as warning
+			return
+		end try
+		set end of myRawData to theParagraphs
 	end repeat
-
+	set visible of windows to true
+	display alert "Début de la conversion"
+	
 	-- we can work outside of TextEdit now
 end tell
 
@@ -78,18 +95,22 @@ set progress additional description to "Preparing to process."
 -- and is the basis of our TMX creation loop.
 -- this part takes *way* too much time.
 
-repeat with i from 1 to length of item 1 of myRawData
+--repeat with i from 1 to length of item 1 of myRawData
+--	
+--	set progress additional description to "Processing raw data " & i & " of " & myLines
+--	-- Increment the progress
+--	set progress completed steps to i
+--	
+--	set oneTU to {}
+--	repeat with j from 1 to length of myRawData
+--		set end of oneTU to item i of item j of myRawData
+--	end repeat
+--	set end of myTMData to oneTU
+--end repeat
 
-	set progress additional description to "Processing raw data " & i & " of " & myLines
-	-- Increment the progress
-	set progress completed steps to i
+set myTMData to current application's SMSForder's colsToRowsIn:myRawData |error|:(missing value)
 
-	set oneTU to {}
-	repeat with j from 1 to length of myRawData
-		set end of oneTU to item i of item j of myRawData
-	end repeat
-	set end of myTMData to oneTU
-end repeat
+
 
 -- The rest below is basically a copy-paste of the relevant part from the "<xls2tmx" script that I use for Excel data
 
@@ -162,7 +183,8 @@ repeat with i from 1 to myLines
 		• dump the duplicated rows
 	*)
 	
-	repeat with j from 1 to length of myTU
+	--	repeat with j from 1 to length of myTU
+	repeat with j from 1 to myTU's |count|()
 		-- each item in myTU will be a <tuv>
 		set myTUV to item j of myTU
 		-- myTUV's xml:lang attribute will be the item with the same index in theLANGAttribute
@@ -187,7 +209,7 @@ end repeat
 (tmxRoot's addChild:tmxBody)
 
 -- the data is saved as XML data, pretty printed and written to a file
-set theTMXFilePath to (POSIX path of (path to desktop)) & "TextEdit2tmx_" & myDateString & ".tmx"
+set theTMXFilePath to "/users/suzume/Desktop/TextEdit2tmx_" & myDateString & ".tmx"
 set theData to theTMXdocument's XMLDataWithOptions:((current application's NSXMLDocumentTidyXML) + (get current application's NSXMLNodePrettyPrint))
 theData's writeToFile:theTMXFilePath atomically:true
 
@@ -199,3 +221,15 @@ set progress total steps to 0
 set progress completed steps to 0
 set progress description to ""
 set progress additional description to ""
+
+on tid(theInput, theDelimiter)
+	set d to AppleScript's text item delimiters
+	set AppleScript's text item delimiters to theDelimiter
+	if class of theInput = text then
+		set theOutput to text items of theInput
+	else if class of theInput = list then
+		set theOutput to theInput as text
+	end if
+	set AppleScript's text item delimiters to d
+	return theOutput
+end tid
