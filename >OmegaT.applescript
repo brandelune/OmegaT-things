@@ -15,9 +15,6 @@ This code is distributed under the GPL3 licence.
 use AppleScript version "2.4" -- Yosemite (10.10) or later
 use scripting additions
 use framework "Foundation"
-use Terminal : script "JC_Terminal"
-use Finder : script "JC_Finder"
-
 
 # This version: Wednesday, September 8, 2022
 # → remove UI scripting for Terminal access
